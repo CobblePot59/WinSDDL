@@ -1,0 +1,5 @@
+.vscode
+
+uv.lock
+.venv
+__pycache__
