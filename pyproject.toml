@@ -1,0 +1,26 @@
+[project]
+name = "winsddl"
+version = "0.1.0"
+description = "A comprehensive Python parser for SDDL strings, supporting multiple objects."
+readme = "README.md"
+authors = [{ name = "CobblePot59" }]
+license = { text = "GPLv3" }
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",
+    "Operating System :: OS Independent",
+]
+requires-python = ">=3.10"
+
+dependencies = [
+    "rich>=14.3.0",
+]
+
+[project.urls]
+Repository = "https://github.com/CobblePot59/WinSDDL"
+Homepage = "https://github.com/CobblePot59/WinSDDL"
+Issues = "https://github.com/CobblePot59/WinSDDL/issues"
+
+[build-system]
+requires = ["uv_build>=0.9.21,<0.10.0"]
+build-backend = "uv_build"
