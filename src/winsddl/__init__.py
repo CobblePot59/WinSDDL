@@ -433,68 +433,63 @@ class SDDLParser:
 
         return json.dumps(data, indent=indent)
     
-    def to_rich(self, console, title=None, sensitive_trustee=False, sensitive_rights=False, debug=False):
+    def to_rich(self, console, title=None, sensitive_trustee=False, sensitive_rights=False, verbose=False):
         """Display security descriptor as a Rich table."""
         from rich.table import Table
-        
-        # Display title if provided
-        if title:
-            console.print(f"\n[bold yellow]{title}[/bold yellow]")
-        
+
         # Check if DACL exists
         if not self.dacl:
-            console.print("[dim]No DACL present[/dim]")
-            return
-        
+            return None
+
         # Initialize table structure
         table = Table(show_header=True, header_style="bold magenta")
         table.add_column("AceType", style="cyan", no_wrap=True)
         table.add_column("Principal", style="green")
         table.add_column("Rights", style="white")
         table.add_column("Applies to", style="dim")
-        
+
         # Determine if this is an Active Directory SDDL
         is_active_directory = self.sddl_type == "ActiveDirectory"
-        
+
         # Track if any ACEs were displayed
         has_displayed_aces = False
-        
+
         # Process each Access Control Entry
         for ace in self.dacl:
             # Extract ACE components
             ace_type = ace.ace_type
             principal_name = ace.trustee.name
-            
+
             # Get rights (basic or advanced)
             if is_active_directory and ace.object_type:
                 rights = [f"{right} ({ace.object_type})" for right in (ace.basic_rights or ace.advanced_rights)]
             else:
                 rights = ace.basic_rights or ace.advanced_rights or []
-            
+
             # Get scope of application
             applies_to = self.get_inheritance_description(ace)
-            
+
             # Determine if this trustee is sensitive
             is_sensitive_trustee = False
             if sensitive_trustee:
                 is_sensitive_trustee = any(trustee in principal_name.lower() for trustee in SENSITIVE_TRUSTEES)
-            
+
             # Identify sensitive rights
             sensitive_rights_found = []
             if sensitive_rights:
                 sensitive_rights_found = [right for right in rights if right in SENSITIVE_FILE_RIGHTS]
-            
-            # Apply filters (skip ACE if filters don't match and not in debug mode)
-            if not debug:
+
+            # Apply filters (skip ACE if filters don't match and not in verbose mode)
+            if not verbose:
                 if sensitive_trustee and not is_sensitive_trustee:
                     continue
                 if sensitive_rights and not sensitive_rights_found:
                     continue
-            
+
             # Format display name (highlight sensitive trustees)
             if is_sensitive_trustee:
                 principal_name = f"[bold red]{principal_name}[/bold red]"
-            
+
             # Format rights display (highlight sensitive rights)
             if sensitive_rights and rights:
                 rights_display = "\n".join(
@@ -503,40 +498,29 @@ class SDDLParser:
                 )
             else:
                 rights_display = "\n".join(rights) if rights else "-"
-            
+
             # Add row to table
             table.add_row(ace_type, principal_name, rights_display, applies_to)
             has_displayed_aces = True
-        
+
         # Handle case where no ACEs matched filters
         if not has_displayed_aces:
-            console.print("[dim italic]No rights granted to sensitive trustees[/dim italic]")
-            
-            # In debug mode, show all ACEs regardless of filters
-            if debug:
-                for ace in self.dacl:
-                    ace_type = ace.ace_type
-                    principal_name = ace.trustee.name
-                    
-                    if is_active_directory and ace.object_type:
-                        rights = [f"{right} ({ace.object_type})" for right in (ace.basic_rights or ace.advanced_rights)]
-                    else:
-                        rights = ace.basic_rights or ace.advanced_rights or []
-                    
-                    applies_to = self.get_inheritance_description(ace)
-                    rights_display = "\n".join(rights) if rights else "-"
-                    table.add_row(ace_type, principal_name, rights_display, applies_to)
-            else:
-                return
-        
+            return None
+
+        # Display title only when there is content to show
+        if title:
+            console.print(f"\n[bold yellow]{title}[/bold yellow]")
+
         # Display the table
         console.print(table)
-        
+
         # Display owner and group information
         owner_name = self.owner.name if self.owner else "-"
         group_name = self.group.name if self.group else "-"
-        
+
         console.print(
             f"[bold cyan]Owner:[/bold cyan] {owner_name}, "
             f"[bold cyan]Group:[/bold cyan] {group_name}"
         )
+
+        return table
